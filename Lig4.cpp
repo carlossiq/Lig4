@@ -15,6 +15,9 @@ using std::endl;
 #include <iomanip>                      // para formatação de saída
 using std::setw;
 
+#include <algorithm>
+#include <limits>
+
 enum tab { vazio = 0, jogador_1 = 1, jogador_2 = 20 };
 enum situation { valida = 0, invalida };
 enum Resultado {VitoriaCor1, VitoriaCor2, Empate, Continua};
@@ -234,6 +237,13 @@ class Lig4Tradicional : public Lig4
 {
     public:
         Lig4Tradicional() : Lig4(7, 6, 4) {}
+        std::pair<int, int> botMinimax() {
+            return findBestMove();
+        }
+
+        std::pair<int, int> botAlphaBeta() {
+            return findBestMoveAlphaBeta();
+        }
         //enum para método resultado
         enum Resultado { VitoriaCor1, VitoriaCor2, Empate, Continua};
         Resultado resultado() {
@@ -328,6 +338,7 @@ class Lig4Tradicional : public Lig4
                 cout << "Jogo empatado!" << endl;
                 return Empate;
             }
+            return Continua;
         }
         void bot() {
             reiniciarTabuleiro(); // Reset
@@ -340,6 +351,188 @@ class Lig4Tradicional : public Lig4
             while (!endGame) {
                 int coluna = dis(gen);  // gera uma coluna aleatória entre 1 e número de colunas
                 jogar(coluna);
+                resultado();
+            }
+        }
+
+        int evaluate() {
+            int score = 0;
+
+            // Avaliar linhas horizontais
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j <= m - 4; j++) {
+                    int lineScore = field[i][j] + field[i][j+1] + field[i][j+2] + field[i][j+3];
+                    if (lineScore == jogador_1 * 4) score += 100;
+                    else if (lineScore == jogador_2 * 4) score -= 100;
+                }
+            }
+
+            // Avaliar colunas verticais
+            for (int j = 0; j < m; j++) {
+                for (int i = 0; i <= n - 4; i++) {
+                    int lineScore = field[i][j] + field[i+1][j] + field[i+2][j] + field[i+3][j];
+                    if (lineScore == jogador_1 * 4) score += 100;
+                    else if (lineScore == jogador_2 * 4) score -= 100;
+                }
+            }
+
+            // Avaliar diagonais descendentes
+            for (int i = 0; i <= n - 4; i++) {
+                for (int j = 0; j <= m - 4; j++) {
+                    int lineScore = field[i][j] + field[i+1][j+1] + field[i+2][j+2] + field[i+3][j+3];
+                    if (lineScore == jogador_1 * 4) score += 100;
+                    else if (lineScore == jogador_2 * 4) score -= 100;
+                }
+            }
+
+            // Avaliar diagonais ascendentes
+            for (int i = 3; i < n; i++) {
+                for (int j = 0; j <= m - 4; j++) {
+                    int lineScore = field[i][j] + field[i-1][j+1] + field[i-2][j+2] + field[i-3][j+3];
+                    if (lineScore == jogador_1 * 4) score += 100;
+                    else if (lineScore == jogador_2 * 4) score -= 100;
+                }
+            }
+
+            return score;
+        }
+
+        int minimax(int depth, bool isMax) {
+            int score = evaluate();
+
+            if (score == 100 || score == -100)
+                return score;
+
+            if (depth == 0)
+                return 0;
+
+            if (isMax) {
+                int best = std::numeric_limits<int>::min();
+                for (int j = 0; j < m; j++) {
+                    for (int i = n - 1; i >= 0; i--) {
+                        if (field[i][j] == vazio) {
+                            field[i][j] = jogador_1;
+                            best = std::max(best, minimax(depth - 1, !isMax));
+                            field[i][j] = vazio;
+                            break;
+                        }
+                    }
+                }
+                return best;
+            } else {
+                int best = std::numeric_limits<int>::max();
+                for (int j = 0; j < m; j++) {
+                    for (int i = n - 1; i >= 0; i--) {
+                        if (field[i][j] == vazio) {
+                            field[i][j] = jogador_2;
+                            best = std::min(best, minimax(depth - 1, !isMax));
+                            field[i][j] = vazio;
+                            break;
+                        }
+                    }
+                }
+                return best;
+            }
+        }
+
+        std::pair<int, int> findBestMove() {
+            int bestVal = std::numeric_limits<int>::min();
+            int bestMoveCol = -1;
+
+            for (int j = 0; j < m; j++) {
+                for (int i = n - 1; i >= 0; i--) {
+                    if (field[i][j] == vazio) {
+                        field[i][j] = jogador_1;
+                        int moveVal = minimax(6, false);  // Depth arbitrário
+                        field[i][j] = vazio;
+
+                        if (moveVal > bestVal) {
+                            bestMoveCol = j;
+                            bestVal = moveVal;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            return {bestMoveCol, bestVal};
+        }
+
+        int minimaxAlphaBeta(int depth, bool isMax, int alpha, int beta) {
+            int score = evaluate();
+
+            if (score == 100 || score == -100)
+                return score;
+
+            if (depth == 0)
+                return 0;
+
+            if (isMax) {
+                int best = std::numeric_limits<int>::min();
+                for (int j = 0; j < m; j++) {
+                    for (int i = n - 1; i >= 0; i--) {
+                        if (field[i][j] == vazio) {
+                            field[i][j] = jogador_1;
+                            best = std::max(best, minimaxAlphaBeta(depth - 1, !isMax, alpha, beta));
+                            field[i][j] = vazio;
+                            alpha = std::max(alpha, best);
+                            if (beta <= alpha) break;
+                            break;
+                        }
+                    }
+                }
+                return best;
+            } else {
+                int best = std::numeric_limits<int>::max();
+                for (int j = 0; j < m; j++) {
+                    for (int i = n - 1; i >= 0; i--) {
+                        if (field[i][j] == vazio) {
+                            field[i][j] = jogador_2;
+                            best = std::min(best, minimaxAlphaBeta(depth - 1, !isMax, alpha, beta));
+                            field[i][j] = vazio;
+                            beta = std::min(beta, best);
+                            if (beta <= alpha) break;
+                            break;
+                        }
+                    }
+                }
+                return best;
+            }
+        }
+
+        std::pair<int, int> findBestMoveAlphaBeta() {
+            int bestVal = std::numeric_limits<int>::min();
+            int bestMoveCol = -1;
+
+            for (int j = 0; j < m; j++) {
+                for (int i = n - 1; i >= 0; i--) {
+                    if (field[i][j] == vazio) {
+                        field[i][j] = jogador_1;
+                        int moveVal = minimaxAlphaBeta(6, false, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());  // Depth arbitrário
+                        field[i][j] = vazio;
+
+                        if (moveVal > bestVal) {
+                            bestMoveCol = j;
+                            bestVal = moveVal;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            return {bestMoveCol, bestVal};
+        }
+
+        void botIA(){
+            reiniciarTabuleiro(); // Reset
+            while (!endGame) {
+                std::pair<int, int> move;
+                if (jogador == jogador_1) {
+                    move = findBestMove();
+                } else {
+                    move = findBestMoveAlphaBeta();
+                }
+                jogar(move.first + 1);  // +1 para ajustar para a jogada do jogador
                 resultado();
             }
         }
@@ -357,9 +550,13 @@ int main() {
     // game.bot();
 
     Lig4Tradicional game;  // cria um jogo de 6 linhas e 7 colunas
-    game.bot();
-    game.bot();
-    game.bot();
+    // game.bot();
+    // game.bot();
+    // game.bot();
 
+    while(int i = 50){
+        game.botIA();
+        i++;
+    }
     return 0;
 }

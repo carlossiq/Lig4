@@ -607,6 +607,8 @@ int main() {
     //         i++;
     //     }
     // }
+
+    
     //testa com entre um jogar AI e um jogador que faz jogadas aleatórias
     {
             int i = 0;

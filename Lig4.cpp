@@ -397,7 +397,12 @@ class Lig4Tradicional : public Lig4
                     else if (lineScore == -3 && k == vazio) score -= 50;
                 }
             }
-
+             // Ajustar os pesos para as colunas centrais
+            // for (int j = 0; j < m; j++) {
+            //     int colWeight = std::abs(j - m / 2); // Peso maior para as colunas centrais
+            //     score += colWeight; // Ajustar a pontuação conforme a distância ao centro
+            // }
+            
             return score;
         }
 
@@ -443,7 +448,10 @@ class Lig4Tradicional : public Lig4
             int bestVal = std::numeric_limits<int>::min();
             int bestMoveCol = -1;
 
-            for (int j = 0; j < m; j++) {
+            // Preferência pelas colunas centrais
+            std::vector<int> columnOrder = {3, 2, 4, 1, 5, 0, 6};
+
+            for (int j : columnOrder) {  // Itera nas colunas de acordo com a ordem de preferência
                 for (int i = n - 1; i >= 0; i--) {
                     if (field[i][j] == vazio) {
                         field[i][j] = jogador_1;
@@ -556,12 +564,30 @@ class Lig4Tradicional : public Lig4
                 // display();
                 // getchar();
                 resultado();
+            }            
+        }
+
+        void botIAxIA(){
+            reiniciarTabuleiro(); // Reset
+            while (!endGame) {
+                std::pair<int, int> move;
+                if (jogador == jogador_1) {
+                    if(counter == 0) jogar(3);
+                    else move = findBestMove();
+                    jogar(move.first + 1);  // +1 para ajustar para a jogada do jogador
+                } else {
+                    move = findBestMove();
+                    jogar(move.first + 1);
+                }
+                // display();
+                // getchar();
+                resultado();
             }
         }
 };
 
 int main() {
-    // Lig4 game(6, 7, 4);  // cria um jogo de 6 linhas e 7 colunas
+    Lig4 game(6, 7, 4);  // cria um jogo de 6 linhas e 7 colunas
     // game.jogar(1);
     // game.jogar(2);
     // game.jogar(2);
@@ -569,19 +595,25 @@ int main() {
     // game.jogar(2);
     // game.display();
     
-    // game.bot();
+    // game.bot();          //bot para testar o jogo Lig4
 
-    Lig4Tradicional game;  // cria um jogo de 6 linhas e 7 colunas
-    // game.bot();
-    // game.bot();
-    // game.bot();
-
-    int i = 0;
-    while(i != 100){
-        game.botIA();
-        i++;
+    Lig4Tradicional gameT;   // cria um jogo de 6 linhas e 7 colunas
+    
+    //testa com entre jogadores que fazem escolhas aleatórias
+    // {
+    //     int i = 0;
+    //     while(i != 200){
+    //         gameT.bot();           
+    //         i++;
+    //     }
+    // }
+    //testa com entre um jogar AI e um jogador que faz jogadas aleatórias
+    {
+            int i = 0;
+        while(i != 200){
+            gameT.botIA();
+            i++;
+        }
     }
-
-    // game.botIA();
     return 0;
 }

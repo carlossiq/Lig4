@@ -178,6 +178,7 @@ class Lig4 {
                     field[i][j] = vazio;
                 }
             }
+            jogador = jogador_1; // Reseta o jogador
             counter = 0; // Zera o contador de jogadas
             endGame = false; // Reseta a flag de fim de jogo
         }
@@ -237,13 +238,6 @@ class Lig4Tradicional : public Lig4
 {
     public:
         Lig4Tradicional() : Lig4(7, 6, 4) {}
-        std::pair<int, int> botMinimax() {
-            return findBestMove();
-        }
-
-        std::pair<int, int> botAlphaBeta() {
-            return findBestMoveAlphaBeta();
-        }
         //enum para método resultado
         enum Resultado { VitoriaCor1, VitoriaCor2, Empate, Continua};
         Resultado resultado() {
@@ -340,57 +334,67 @@ class Lig4Tradicional : public Lig4
             }
             return Continua;
         }
-        void bot() {
-            reiniciarTabuleiro(); // Reset
-            // Configuração do gerador de números aleatórios
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_int_distribution<> dis(1, m);
-
-            // Preencher o tabuleiro alternando jogadas até que todos os campos estejam preenchidos
-            while (!endGame) {
-                int coluna = dis(gen);  // gera uma coluna aleatória entre 1 e número de colunas
-                jogar(coluna);
-                resultado();
-            }
-        }
-
+        //algoritmo
         int evaluate() {
             int score = 0;
 
             // Avaliar linhas horizontais
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j <= m - 4; j++) {
-                    int lineScore = field[i][j] + field[i][j+1] + field[i][j+2] + field[i][j+3];
-                    if (lineScore == jogador_1 * 4) score += 100;
-                    else if (lineScore == jogador_2 * 4) score -= 100;
+                    int lineScore = 0;
+                    for (int k = 0; k < 4; k++) {
+                        if (field[i][j + k] == jogador_1) lineScore += 1;
+                        if (field[i][j + k] == jogador_2) lineScore -= 1;
+                    }
+                    if (lineScore == 4) score += 100;
+                    else if (lineScore == -4) score -= 100;
+                    else if (lineScore == 3 && k == vazio) score += 50;  // Priorizar uma vitória iminente
+                    else if (lineScore == -3 && k == vazio) score -= 50; // Bloquear uma derrota iminente
                 }
             }
 
             // Avaliar colunas verticais
             for (int j = 0; j < m; j++) {
                 for (int i = 0; i <= n - 4; i++) {
-                    int lineScore = field[i][j] + field[i+1][j] + field[i+2][j] + field[i+3][j];
-                    if (lineScore == jogador_1 * 4) score += 100;
-                    else if (lineScore == jogador_2 * 4) score -= 100;
+                    int lineScore = 0;
+                    for (int k = 0; k < 4; k++) {
+                        if (field[i + k][j] == jogador_1) lineScore += 1;
+                        if (field[i + k][j] == jogador_2) lineScore -= 1;
+                    }
+                    if (lineScore == 4) score += 100;
+                    else if (lineScore == -4) score -= 100;
+                    else if (lineScore == 3 && k == vazio) score += 50;
+                    else if (lineScore == -3 && k == vazio) score -= 50;
                 }
             }
 
             // Avaliar diagonais descendentes
             for (int i = 0; i <= n - 4; i++) {
                 for (int j = 0; j <= m - 4; j++) {
-                    int lineScore = field[i][j] + field[i+1][j+1] + field[i+2][j+2] + field[i+3][j+3];
-                    if (lineScore == jogador_1 * 4) score += 100;
-                    else if (lineScore == jogador_2 * 4) score -= 100;
+                    int lineScore = 0;
+                    for (int k = 0; k < 4; k++) {
+                        if (field[i + k][j + k] == jogador_1) lineScore += 1;
+                        if (field[i + k][j + k] == jogador_2) lineScore -= 1;
+                    }
+                    if (lineScore == 4) score += 100;
+                    else if (lineScore == -4) score -= 100;
+                    else if (lineScore == 3 && k == vazio) score += 50;
+                    else if (lineScore == -3 && k == vazio) score -= 50;
                 }
             }
 
             // Avaliar diagonais ascendentes
             for (int i = 3; i < n; i++) {
                 for (int j = 0; j <= m - 4; j++) {
-                    int lineScore = field[i][j] + field[i-1][j+1] + field[i-2][j+2] + field[i-3][j+3];
-                    if (lineScore == jogador_1 * 4) score += 100;
-                    else if (lineScore == jogador_2 * 4) score -= 100;
+                    int lineScore = 0;
+                    for (int k = 0; k < 4; k++) {
+                        if (field[i - k][j + k] == jogador_1) lineScore += 1;
+                        if (field[i - k][j + k] == jogador_2) lineScore -= 1;
+                    }
+                    if (lineScore == 4) score += 100;
+                    else if (lineScore == -4) score -= 100;
+                    else if (lineScore == 3 && k == vazio) score += 50;
+                    else if (lineScore == -3 && k == vazio) score -= 50;
                 }
             }
 
@@ -404,7 +408,7 @@ class Lig4Tradicional : public Lig4
                 return score;
 
             if (depth == 0)
-                return 0;
+                return score;
 
             if (isMax) {
                 int best = std::numeric_limits<int>::min();
@@ -450,7 +454,7 @@ class Lig4Tradicional : public Lig4
                             bestMoveCol = j;
                             bestVal = moveVal;
                         }
-                        break;
+                        break;  // Pare após encontrar o primeiro espaço vazio
                     }
                 }
             }
@@ -465,7 +469,7 @@ class Lig4Tradicional : public Lig4
                 return score;
 
             if (depth == 0)
-                return 0;
+                return score;
 
             if (isMax) {
                 int best = std::numeric_limits<int>::min();
@@ -476,8 +480,8 @@ class Lig4Tradicional : public Lig4
                             best = std::max(best, minimaxAlphaBeta(depth - 1, !isMax, alpha, beta));
                             field[i][j] = vazio;
                             alpha = std::max(alpha, best);
-                            if (beta <= alpha) break;
-                            break;
+                            if (beta <= alpha)
+                                break;
                         }
                     }
                 }
@@ -491,8 +495,8 @@ class Lig4Tradicional : public Lig4
                             best = std::min(best, minimaxAlphaBeta(depth - 1, !isMax, alpha, beta));
                             field[i][j] = vazio;
                             beta = std::min(beta, best);
-                            if (beta <= alpha) break;
-                            break;
+                            if (beta <= alpha)
+                                break;
                         }
                     }
                 }
@@ -508,31 +512,49 @@ class Lig4Tradicional : public Lig4
                 for (int i = n - 1; i >= 0; i--) {
                     if (field[i][j] == vazio) {
                         field[i][j] = jogador_1;
-                        int moveVal = minimaxAlphaBeta(6, false, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());  // Depth arbitrário
+                        int moveVal = minimaxAlphaBeta(6, false, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
                         field[i][j] = vazio;
 
                         if (moveVal > bestVal) {
                             bestMoveCol = j;
                             bestVal = moveVal;
                         }
-                        break;
+                        break;  // Pare após encontrar o primeiro espaço vazio
                     }
                 }
             }
 
             return {bestMoveCol, bestVal};
         }
+        void bot() {
+            reiniciarTabuleiro(); // Reset
+            // Configuração do gerador de números aleatórios
+            std::mt19937 gen(time(nullptr));
+            std::uniform_int_distribution<> dis(1, m);
 
+            // Preencher o tabuleiro alternando jogadas até que todos os campos estejam preenchidos
+            while (!endGame) {
+                int coluna = dis(gen);  // gera uma coluna aleatória entre 1 e número de colunas
+                jogar(coluna);
+                resultado();
+            }
+        }
         void botIA(){
             reiniciarTabuleiro(); // Reset
+            std::mt19937 gen(time(nullptr));
+            std::uniform_int_distribution<> dis(1, m);
             while (!endGame) {
                 std::pair<int, int> move;
                 if (jogador == jogador_1) {
-                    move = findBestMove();
+                    if(counter == 0) jogar(3);
+                    else move = findBestMove();
+                    jogar(move.first + 1);  // +1 para ajustar para a jogada do jogador
                 } else {
-                    move = findBestMoveAlphaBeta();
+                    int coluna = dis(gen);  // gera uma coluna aleatória entre 1 e número de colunas
+                    jogar(coluna);
                 }
-                jogar(move.first + 1);  // +1 para ajustar para a jogada do jogador
+                // display();
+                // getchar();
                 resultado();
             }
         }
@@ -554,9 +576,12 @@ int main() {
     // game.bot();
     // game.bot();
 
-    while(int i = 50){
+    int i = 0;
+    while(i != 100){
         game.botIA();
         i++;
     }
+
+    // game.botIA();
     return 0;
 }
